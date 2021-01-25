@@ -1,5 +1,11 @@
 #!/bin/sh
 
+#add the mail address with space seperated if there are mutiple mail address
+EMAIL_TO_ADDRESS="abc@gmail.com"
+
+#Verify and update the file path if it is placed in a different location
+PWD_FILE=$HOME/scripts/.pwdUpdate
+
 error_exit()
 {
         echo "error_exit --> $1" 1>&2
@@ -11,7 +17,7 @@ mail_on_success(){
 
         mailSubject="ALERT:(PasswdExpiry-AutoUpdate-$USER@$HOSTNAME) ACTIONED !!!"
         mailBody="
-Hi TDS Team Support on ROTA,
+Hi Team,
 
 Please note that Password is about to expire in $expday days for the user $USER@$HOSTNAME.
 Hence the same is updated as an automated process. Please note the below new password and update the same in your KEEPASS.
@@ -29,14 +35,14 @@ $mailSubject"
         echo "$mailBody">mailBody
 
         # mail -s "$mailSubject" MercatorTechDeliveryCargo@accelya.com MercatorCMOps@mercator.com  < $mailBody
-        mail -s "$mailSubject" haneesh.hussan@accelya.com biswaranjan.pradhan@accelya.com maqsood.syed@accelya.com naveen.singh@accelya.com bhupendra.yadav@accelya.com < mailBody; rm mailBody
+        mail -s "$mailSubject" "$EMAIL_TO_ADDRESS" < mailBody; rm mailBody
 
 }
 
 mail_on_failure(){
         mailSubject="ALERT:(PasswdExpiry-AutoUpdate-$USER@$HOSTNAME) FAILED !!! - Manual ACTION Required"
         mailBody="
-Hi TDS Team Support on ROTA,
+Hi Team,
 
 Please note that Password Auto Update is failed for the user $USER@$HOSTNAME.
 Hence please update the same manually ASAP.
@@ -47,7 +53,7 @@ Hence please update the same manually ASAP.
 $mailSubject"
         echo "$mailBody">mailBody
 
-        mail -s "$mailSubject" MercatorTechDeliveryCargo@accelya.com haneesh.hussan@accelya.com  < mailBody; rm mailBody
+        mail -s "$mailSubject" "$EMAIL_TO_ADDRESS"  < mailBody; rm mailBody
 
 }
 
@@ -61,8 +67,8 @@ random=`date +%s%N |sha256sum| head -c8`
 special_character=$(echo '!@#$&' | fold -w1 | shuf | head -c1)
 special_character2=$(echo 'AQWSDERFGTYHJUIKOLP' | fold -w1 | shuf | head -c1)
 
-counter=`grep "counter" /$HOME/admin-scripts/util/.pwdUpdate|cut -d'=' -f 2|head -1`
-currPass=`grep "currPass" /$HOME/admin-scripts/util/.pwdUpdate|cut -d'=' -f 2|head -1`
+counter=`grep "counter" $PWD_FILE|cut -d'=' -f 2|head -1`
+currPass=`grep "currPass" $PWD_FILE|cut -d'=' -f 2|head -1`
 
 echo "
 currentdate=$currentdate
@@ -71,6 +77,8 @@ expday=$expday
 passexp=$passexp
 exp=$exp
 "
+
+#If the password to be updated 
 if [ "$expday" -le 7 ]; then
         echo "counter --> $counter"
         NewPassStr="$random$special_character$special_character2"
@@ -82,8 +90,7 @@ if [ "$expday" -le 7 ]; then
             echo "It's there!"
             mail_on_success
             echo "counter=1
-currPass=$NewPassStr" > /$HOME/admin-scripts/util/.pwdUpdate
+currPass=$NewPassStr" > $PWD_FILE
         fi
-
 fi
 
